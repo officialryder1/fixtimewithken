@@ -117,6 +117,22 @@
       alert('Error: ' + err.message);
     }
   }
+
+  function getAppointMentDetails(appt) {
+        return `
+            <div class="p-2">
+                <div class="font-bold">Visitor Details</div>
+                <div class="divider my-1"></div>
+                <p><span class="font-semibold">Name:</span> ${appt.visitor_name || 'Not specified'}</p>
+                <p><span class="font-semibold">Email:</span> ${appt.visitor_email || 'Not specified'}</p>
+                <p><span class="font-semibold">Phone:</span> ${appt.visitor_phone || 'Not specified'}</p>
+                <div class="divider my-1"></div>
+                <p><span class="font-semibold">Purpose:</span> ${appt.purpose || 'Not specified'}</p>
+                <p><span class="font-semibold">Requested:</span> ${new Date(appt.requested_date).toLocaleString()}</p>
+                <p><span class="font-semibold">Duration:</span> ${appt.duration} minutes</p>
+            </div>
+        `
+    }
 </script>
 
 <div class="p-4 md:p-6 lg:p-8 w-full space-y-6 bg-base-100 min-h-screen">
@@ -223,8 +239,12 @@
         </thead>
         <tbody>
           {#each filteredAppointments as appt}
-            <tr class="hover">
-              <td>{formatDate(appt.requested_date)}</td>
+            <tr class="hover:bg-gray-700 transition-colors"
+			>
+              <td
+				class="tooltip tooltip-right"
+				data-tip={getAppointMentDetails(appt)}
+			  >{formatDate(appt.requested_date)}</td>
               <td>{formatTime(appt.requested_date)}</td>
               {#if currentUser?.role !== 'guest'}
                 <td>
@@ -322,3 +342,10 @@
     {/if}
   </div>
 </div>
+
+<style>
+    .tooltip::before {
+        white-space: pre-wrap;
+        max-width: 300px;
+    }
+</style>

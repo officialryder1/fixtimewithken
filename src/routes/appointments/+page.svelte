@@ -9,39 +9,38 @@
     let unsubscribe = null;
 
     onMount(async () => {
-        // Initial load
         await loadInitialAppointments();
         
-        // Subscribe to realtime updates
         unsubscribe = pb.collection('appointments').subscribe('*', async (e) => {
             console.log('Realtime event:', e);
             
-            // Handle different event types
             if (e.action === 'create') {
-                // Add new appointment if it matches current user's filters
                 if (shouldIncludeAppointment(e.record)) {
                     appointments = [...appointments, e.record];
                 }
             } 
             else if (e.action === 'update') {
-                // Update existing appointment or add if it now matches filters
-                appointments = appointments.filter(appt => appt.id !== e.record.id);
-                if (shouldIncludeAppointment(e.record)) {
-                   appointments = [...appointments, e.record].sort((a,b) => new Date(b.created) - new Date(a.created))
+                // Handle status changes
+                if (e.record.status === 'rejected' && currentUser?.role === 'admin') {
+                    // Immediately remove rejected appointments from admin view
+                    appointments = appointments.filter(appt => appt.id !== e.record.id);
+                } else {
+                    // Standard update handling
+                    appointments = appointments.filter(appt => appt.id !== e.record.id);
+                    if (shouldIncludeAppointment(e.record)) {
+                        appointments = [...appointments, e.record].sort((a, b) => 
+                            new Date(b.created) - new Date(a.created))
+                    }
                 }
             }
             else if (e.action === 'delete') {
-                // Remove deleted appointment
                 appointments = appointments.filter(appt => appt.id !== e.record.id);
             }
         });
     });
 
-    // Clean up subscription
     onDestroy(() => {
-        if (unsubscribe) {
-            unsubscribe();
-        }
+        if (unsubscribe) unsubscribe();
     });
 
     async function loadInitialAppointments() {
@@ -84,7 +83,6 @@
         appointments = result;
     }
 
-    // Check if an appointment should be included based on user role
     function shouldIncludeAppointment(appt) {
         if (currentUser?.role === 'admin') {
             return true;
@@ -95,6 +93,26 @@
         }
         return false;
     }
+
+    async function rejectAppointment(id) {
+        try {
+            // Optimistically remove from local state
+            appointments = appointments.filter(appt => appt.id !== id);
+            
+            await pb.collection('appointments').update(id, {
+                status: 'rejected',
+                approved_by: currentUser.id
+            });
+            
+            // The realtime update will handle the final state
+        } catch(err) {
+            alert('Error: ' + err.message);
+            // If error, reload appointments to restore correct state
+            await loadInitialAppointments();
+        }
+    }
+
+    
 </script>
 
 <h1 class="text-2xl font-bold text-gray-100 mx-5 my-5">
@@ -112,7 +130,10 @@
     {/if}
 </p>
 
-<AppointmentList {appointments} />
+<AppointmentList 
+    appointments={appointments} 
+    onReject={rejectAppointment}
+/>
 
 <div class="flex justify-end mx-5 my-5">
     {#if currentUser?.role === 'admin' || currentUser?.role === 'guest'}
