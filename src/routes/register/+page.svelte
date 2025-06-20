@@ -45,7 +45,7 @@
 	<div class="w-full max-w-md bg-white p-8 rounded-lg shadow-md">
 		<h1 class="text-2xl font-bold text-center mb-6 text-blue-400">Register as Visitor</h1>
 
-		<form on:submit|preventDefault={register} class="space-y-4">
+		<form on:submit|preventDefault={register} class="space-y-4 text-base-200">
 			<div>
 				<label for="name" class="block text-sm font-medium text-gray-700">Name</label>
 				<input type="text" id="name" bind:value={form.name} required
